@@ -1321,10 +1321,28 @@ async function handleCopilotMessage(customText) {
     } catch (e) {
         console.error("Failed to fetch MCP tools list:", e);
     }
-    const provider = localStorage.getItem("api_provider") || "gemini";
-    const geminiKey = localStorage.getItem("gemini_api_key");
-    const fireworksKey = localStorage.getItem("fireworks_api_key");
-    const hasActiveKey = (provider === "gemini" && geminiKey) || (provider === "fireworks" && fireworksKey);
+    let provider = localStorage.getItem("api_provider") || "gemini";
+    let geminiKey = localStorage.getItem("gemini_api_key") || "";
+    let fireworksKey = localStorage.getItem("fireworks_api_key") || "";
+
+    // Auto-align provider if there is a mismatch (e.g. Fireworks key exists but Gemini is selected empty)
+    if (provider === "gemini" && geminiKey.trim() === "" && fireworksKey.trim() !== "") {
+        provider = "fireworks";
+        localStorage.setItem("api_provider", "fireworks");
+        if (elements.apiProviderSelect) {
+            elements.apiProviderSelect.value = "fireworks";
+        }
+        writeConsoleLog("> ⚙️ Auto-aligned active LLM provider to Fireworks AI (found active Fireworks key).", "info-msg");
+    } else if (provider === "fireworks" && fireworksKey.trim() === "" && geminiKey.trim() !== "") {
+        provider = "gemini";
+        localStorage.setItem("api_provider", "gemini");
+        if (elements.apiProviderSelect) {
+            elements.apiProviderSelect.value = "gemini";
+        }
+        writeConsoleLog("> ⚙️ Auto-aligned active LLM provider to Google Gemini (found active Gemini key).", "info-msg");
+    }
+
+    const hasActiveKey = (provider === "gemini" && geminiKey.trim() !== "") || (provider === "fireworks" && fireworksKey.trim() !== "");
 
     let assistantResponseText = "";
 
@@ -1661,6 +1679,23 @@ elements.settingsSaveBtn.addEventListener("click", saveSettings);
 elements.promptCloseBtn.addEventListener("click", closePrompt);
 elements.exportYamlBtn.addEventListener("click", compileSuperPlaneYaml);
 elements.yamlCloseBtn.addEventListener("click", closeYaml);
+
+// Auto-save input credentials on-the-fly as user types to prevent configuration loss
+if (elements.geminiKeyInput) {
+    elements.geminiKeyInput.addEventListener("input", (e) => {
+        localStorage.setItem("gemini_api_key", e.target.value.trim());
+    });
+}
+if (elements.fireworksKeyInput) {
+    elements.fireworksKeyInput.addEventListener("input", (e) => {
+        localStorage.setItem("fireworks_api_key", e.target.value.trim());
+    });
+}
+if (elements.opseraTokenInput) {
+    elements.opseraTokenInput.addEventListener("input", (e) => {
+        localStorage.setItem("opsera_api_token", e.target.value.trim());
+    });
+}
 
 // Cockpit panel tabs listeners & toggle logic
 function switchCockpitTab(tabName) {
