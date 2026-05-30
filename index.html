@@ -452,6 +452,43 @@
                     <input type="password" id="fireworks-key" placeholder="fw_..." autocomplete="off">
                     <span class="input-hint">Enter your key from <a href="https://fireworks.ai/" target="_blank">Fireworks AI Console</a>.</span>
                 </div>
+                
+                <hr class="drawer-divider" style="border: 0; border-top: 1px dashed rgba(255,255,255,0.08); margin: 1.25rem 0;">
+                
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 0.4rem; font-weight: 700; color: var(--text-secondary);">
+                        <span>🔌 Opsera Portal Integration</span>
+                        <span class="pulse-dot-small animate-pulse" style="background: #a855f7; box-shadow: 0 0 8px #a855f7; width: 6px; height: 6px; border-radius: 50%;"></span>
+                    </label>
+                    <p class="drawer-note" style="margin-top: 0.25rem; font-size: 0.7rem; color: var(--text-muted);">Connect your dashboard directly to your live Opsera DevSecOps Agents account.</p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="opsera-auth-method">Authentication Option</label>
+                    <select id="opsera-auth-method" class="form-select">
+                        <option value="oauth-dcr">OAuth 2.0 Dynamic Client Registration (DCR)</option>
+                        <option value="manual-token">Manual Personal Access Token (PAT)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="opsera-token-group" style="display: none;">
+                    <label for="opsera-token">Opsera API Token / JWT</label>
+                    <input type="password" id="opsera-token" placeholder="Paste Opsera token from Credentials tab..." autocomplete="off">
+                    <span class="input-hint">Generate this in your <a href="https://agent.opsera.ai/" target="_blank">Opsera Portal ➜ Credentials</a>.</span>
+                </div>
+                
+                <div class="form-group" id="opsera-dcr-desc-group">
+                    <p class="drawer-note" style="font-size: 0.7rem; color: var(--text-muted); line-height: 1.4; margin: 0;">
+                        <strong style="color: var(--accent-purple);">OAuth DCR Active:</strong> If the server supports OAuth DCR, Replit automatically detects and registers the client dynamically for you. Most pre-listed servers use this secure flow.
+                    </p>
+                </div>
+                
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem;">
+                    <button class="btn btn-secondary" style="flex: 1; font-size: 0.75rem; padding: 0.5rem 0.75rem; border: 1px dashed rgba(168, 85, 247, 0.3); background: rgba(168, 85, 247, 0.02); color: var(--text-secondary);" id="opsera-oauth-btn">
+                        🔗 OAuth Sign-In & Connect
+                    </button>
+                </div>
+                
                 <button class="btn btn-primary" id="settings-save-btn">Save Configurations</button>
             </div>
         </div>
