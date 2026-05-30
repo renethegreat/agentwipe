@@ -1303,8 +1303,9 @@ async function handleCopilotMessage(customText) {
     if (textLower.startsWith("/opsera") || textLower.includes("opsera") || textLower.includes("mcp list") || textLower.includes("scan")) {
         writeConsoleLog("> 🔌 [MCP CLIENT] Handshaking directly with Opsera portal at https://agent.opsera.ai/mcp...", "info-msg");
         
+        const isListQuery = textLower.includes("list") || textLower.includes("tools") || textLower.includes("avail") || textLower.includes("show") || textLower.includes("help") || textLower.includes("what do we have");
         let mcpResponse = null;
-        if (textLower.includes("list") || textLower.includes("tools")) {
+        if (isListQuery) {
             mcpResponse = await callOpseraMCP("tools/list");
         } else {
             mcpResponse = await callOpseraMCP("tools/call", {
@@ -1321,12 +1322,12 @@ async function handleCopilotMessage(customText) {
         if (t1) t1.remove();
         const t2 = document.getElementById("chat-typing-indicator-docked");
         if (t2) t2.remove();
-
+ 
         if (mcpResponse && mcpResponse.result) {
             writeConsoleLog("> 🔌 [MCP SUCCESS] Received structured payload from Opsera MCP server.", "success-msg");
             
             let displayHtml = "";
-            if (textLower.includes("list") || textLower.includes("tools")) {
+            if (isListQuery) {
                 const tools = mcpResponse.result.tools || [];
                 displayHtml = `<p>🔌 <strong>Opsera MCP Server connected!</strong> Here are the real DevSecOps tools listed natively from <code>https://agent.opsera.ai/mcp</code>:</p><ul>`;
                 if (tools.length > 0) {
@@ -1352,10 +1353,15 @@ async function handleCopilotMessage(customText) {
             appendMessageToBoth(displayHtml, "assistant");
             return;
         } else {
-            writeConsoleLog("> [MCP WARN] Opsera portal returned offline/local sandbox fallback. Booting local client parser.", "info-msg");
+            const hasToken = !!localStorage.getItem("opsera_api_token");
+            if (!hasToken) {
+                writeConsoleLog("> [MCP WARN] Opsera portal request failed (401 Unauthorized). No active OAuth session token found.", "warn-msg");
+            } else {
+                writeConsoleLog("> [MCP WARN] Opsera portal request failed. Using secure local sandbox fallback.", "info-msg");
+            }
             
             let displayHtml = "";
-            if (textLower.includes("list") || textLower.includes("tools")) {
+            if (isListQuery) {
                 displayHtml = `<p>🔌 <strong>Opsera MCP Client Active (Local Sandbox Mode):</strong></p>
                 <p>I attempted a direct connection to <code>https://agent.opsera.ai/mcp</code>. Here are the native DevSecOps agent tools declared in your project's <code>.mcp.json</code> file:</p>
                 <ul>
@@ -1374,6 +1380,12 @@ async function handleCopilotMessage(customText) {
                 </div>
                 <p>Everything is secure and ready for production deployment!</p>`;
             }
+            
+            displayHtml += `
+            <p style="margin-top: 0.75rem; font-size: 0.7rem; color: var(--text-muted); line-height: 1.4; border-top: 1px dashed rgba(255,255,255,0.06); padding-top: 0.5rem; text-align: left;">
+              ⚠️ <strong>Why fallback?</strong> The direct connection to the live Opsera portal at <code>https://agent.opsera.ai/mcp</code> returned <code>401 Unauthorized</code> (or met CORS boundaries) because no active OAuth token was sent. Use the <strong>🔌 Opsera Portal Integration</strong> panel on the right settings drawer to connect securely via DCR!
+            </p>`;
+            
             appendMessageToBoth(displayHtml, "assistant");
             return;
         }
