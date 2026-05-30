@@ -488,14 +488,14 @@ ${scriptCode}`;
             writeConsoleLog(`> [AI TIMEOUT/ERROR] Gemini failed: ${err.message}. Falling back to local synthesizer...`, "error-msg");
         }
     } else if (activeProvider === "fireworks" && fireworksKey && fireworksKey.trim() !== "") {
-        writeConsoleLog("> 🔮 Connecting to Fireworks AI (Llama-3.1-70B-Instruct) endpoint...", "info-msg");
+        writeConsoleLog("> 🔮 Connecting to Fireworks AI (Kimi K2.6 by Moonshot AI) endpoint...", "info-msg");
         writeConsoleLog("> Querying secure Fireworks chat engine...", "system-msg");
 
         try {
             const apiEndpoint = `https://api.fireworks.ai/inference/v1/chat/completions`;
             
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 4000);
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
 
             const response = await fetch(apiEndpoint, {
                 method: "POST",
@@ -504,7 +504,7 @@ ${scriptCode}`;
                     "Authorization": `Bearer ${fireworksKey}`
                 },
                 body: JSON.stringify({
-                    model: "accounts/fireworks/models/llama-v3p1-70b-instruct",
+                    model: "accounts/fireworks/models/kimi-k2p6",
                     messages: [
                         { role: "user", content: systemPrompt }
                     ],
@@ -1202,7 +1202,7 @@ function updateChatModelBadge() {
         elements.chatModelBadge.textContent = "GEMINI";
         elements.chatModelBadge.className = "model-badge gemini";
     } else if (provider === "fireworks" && fireworksKey.trim() !== "") {
-        elements.chatModelBadge.textContent = "LLAMA 3.1";
+        elements.chatModelBadge.textContent = "KIMI K2.6";
         elements.chatModelBadge.className = "model-badge fireworks";
     } else {
         elements.chatModelBadge.textContent = "MOCK AI";
@@ -1220,37 +1220,86 @@ function escapeHtml(text) {
         .replace(/'/g, "&#039;");
 }
 
-// MCP Client Helper for Direct Opsera Integrations
+// MCP Client - routes through authenticated backend proxy at /api/opsera/mcp
+// The backend handles OAuth token storage - browser never touches the token
 async function callOpseraMCP(method, params = {}) {
-    const endpoint = `https://agent.opsera.ai/mcp`;
-    const opseraToken = localStorage.getItem("opsera_api_token");
-    const headers = {
-        "Content-Type": "application/json"
-    };
-    if (opseraToken && opseraToken.trim() !== "") {
-        headers["Authorization"] = `Bearer ${opseraToken.trim()}`;
-    }
+    const proxyEndpoint = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+        ? "http://localhost:3000/api/opsera/mcp"
+        : "/api/opsera/mcp";
 
     try {
-        const response = await fetch(endpoint, {
+        const response = await fetch(proxyEndpoint, {
             method: "POST",
-            headers: headers,
-            body: JSON.stringify({
-                jsonrpc: "2.0",
-                method: method,
-                params: params,
-                id: Math.round(Math.random() * 1000)
-            })
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ method, params })
         });
-        if (response.ok) {
-            return await response.json();
+
+        if (response.status === 401) {
+            // Not authenticated — return null so caller knows
+            console.warn("[MCP] Not authenticated with Opsera yet.");
+            return null;
         }
-        throw new Error(`HTTP ${response.status}`);
+
+        return await response.json();
     } catch (err) {
-        console.error("Opsera MCP Connection failed:", err);
+        console.error("Opsera MCP proxy error:", err);
         return null;
     }
 }
+
+// Check Opsera auth status and update UI
+async function checkOpseraStatus() {
+    const statusEndpoint = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+        ? "http://localhost:3000/api/opsera/status"
+        : "/api/opsera/status";
+    try {
+        const res = await fetch(statusEndpoint);
+        const data = await res.json();
+        updateOpseraStatusUI(data.authenticated);
+        return data.authenticated;
+    } catch(e) {
+        updateOpseraStatusUI(false);
+        return false;
+    }
+}
+
+function updateOpseraStatusUI(authenticated) {
+    const statusDot = document.getElementById("opsera-status-dot");
+    const statusLabel = document.getElementById("opsera-status-label");
+    const connectBtn = document.getElementById("opsera-connect-btn");
+    if (statusDot) statusDot.style.background = authenticated ? "#10b981" : "#ef4444";
+    if (statusLabel) statusLabel.textContent = authenticated ? "Connected" : "Not connected";
+    if (connectBtn) connectBtn.textContent = authenticated ? "✅ Reconnect" : "🔌 Connect Opsera";
+}
+
+// Trigger OAuth login flow via backend
+async function opseraConnect() {
+    const authEndpoint = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+        ? "http://localhost:3000/api/opsera/auth"
+        : "/api/opsera/auth";
+
+    writeConsoleLog("> 🔌 Starting Opsera OAuth login (browser window will open)...", "info-msg");
+
+    try {
+        await fetch(authEndpoint); // triggers DCR + opens browser
+        writeConsoleLog("> 🌐 Browser opened — log in with your Opsera account.", "system-msg");
+
+        // Listen for postMessage from the OAuth callback page
+        window.addEventListener("message", function onAuth(evt) {
+            if (evt.data && evt.data.type === "opsera_auth_success") {
+                window.removeEventListener("message", onAuth);
+                writeConsoleLog("> ✅ [OPSERA] Authenticated successfully! MCP tools are now live.", "success-msg");
+                checkOpseraStatus();
+            }
+        });
+    } catch(e) {
+        writeConsoleLog(`> ❌ [OPSERA] Auth failed: ${e.message}`, "error-msg");
+    }
+}
+
+// Check status on load
+checkOpseraStatus();
+
 
 // AI Copilot Chat Core Response Engine
 async function handleCopilotMessage(customText) {
@@ -1258,32 +1307,47 @@ async function handleCopilotMessage(customText) {
     if (typeof customText === "string" && customText.trim() !== "") {
         text = customText.trim();
     } else {
-        const floatingVal = elements.chatInput.value.trim();
-        const dockedVal = elements.dockedChatInput.value.trim();
+        const floatingVal = elements.chatInput ? elements.chatInput.value.trim() : "";
+        const dockedVal = elements.dockedChatInput ? elements.dockedChatInput.value.trim() : "";
         text = floatingVal || dockedVal;
     }
     
     if (text === "") return;
 
+    // Determine which chat UI is currently visible/active
+    const floatingVisible = elements.copilotChatWindow && elements.copilotChatWindow.classList.contains("active");
+    // Use floating if it's open AND has input, otherwise use docked
+    const useFloating = floatingVisible && elements.chatInput && elements.chatInput.value.trim() !== "";
+
     // Clear both inputs
-    elements.chatInput.value = "";
-    elements.dockedChatInput.value = "";
+    if (elements.chatInput) elements.chatInput.value = "";
+    if (elements.dockedChatInput) elements.dockedChatInput.value = "";
 
-    // Helper to append message to both streams
+    // Helper: append message to the active chat container(s)
+    function appendMessage(htmlContent, className, isTyping = false) {
+        // Always add to docked chat
+        if (elements.dockedChatMessages) {
+            const b = document.createElement("div");
+            b.className = `chat-bubble ${className}`;
+            if (isTyping) b.id = "chat-typing-indicator-docked";
+            b.innerHTML = htmlContent;
+            elements.dockedChatMessages.appendChild(b);
+            elements.dockedChatMessages.scrollTop = elements.dockedChatMessages.scrollHeight;
+        }
+        // If floating is open, mirror there too
+        if (elements.chatMessages && floatingVisible) {
+            const b2 = document.createElement("div");
+            b2.className = `chat-bubble ${className}`;
+            if (isTyping) b2.id = "chat-typing-indicator";
+            b2.innerHTML = htmlContent;
+            elements.chatMessages.appendChild(b2);
+            elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+        }
+    }
+
+    // Keep legacy appendMessageToBoth as alias for compatibility
     function appendMessageToBoth(htmlContent, className, isTyping = false) {
-        const b1 = document.createElement("div");
-        b1.className = `chat-bubble ${className}`;
-        if (isTyping) b1.id = "chat-typing-indicator";
-        b1.innerHTML = htmlContent;
-        elements.chatMessages.appendChild(b1);
-        elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
-
-        const b2 = document.createElement("div");
-        b2.className = `chat-bubble ${className}`;
-        if (isTyping) b2.id = "chat-typing-indicator-docked";
-        b2.innerHTML = htmlContent;
-        elements.dockedChatMessages.appendChild(b2);
-        elements.dockedChatMessages.scrollTop = elements.dockedChatMessages.scrollHeight;
+        appendMessage(htmlContent, className, isTyping);
     }
 
     // Render user message bubble
@@ -1301,24 +1365,21 @@ async function handleCopilotMessage(customText) {
 
     const textLower = text.toLowerCase();
     
-    // Fetch Opsera MCP tools context dynamically
-    let opseraMcpContext = "Offline / Unconnected";
+    // Fetch real Opsera MCP tools from the live GitBook documentation server
+    let opseraMcpContext = "Connecting...";
     let mcpTools = [];
     
     try {
         const mcpResponse = await callOpseraMCP("tools/list");
         if (mcpResponse && mcpResponse.result && mcpResponse.result.tools) {
             mcpTools = mcpResponse.result.tools;
-            opseraMcpContext = `Connected (Active). Tools available:\n` + mcpTools.map(t => `- ${t.name}: ${t.description}`).join("\n");
+            opseraMcpContext = `Connected to Opsera GitBook Docs MCP. Real tools available:\n` + 
+                mcpTools.map(t => `- ${t.name}: ${t.description}`).join("\n");
         } else {
-            mcpTools = [
-                { name: "architecture_analyzer", description: "Analyzes repo structures to map visual self-healing workflows." },
-                { name: "compliance_auditor", description: "Verifies that workflows comply with sandboxed write permissions." },
-                { name: "security_vulnerability_scanner", description: "Reviews bash scripts for OOM pings or zombie loops." }
-            ];
-            opseraMcpContext = `Local Sandbox Fallback Mode (Unauthenticated). Tools available:\n` + mcpTools.map(t => `- ${t.name}: ${t.description}`).join("\n");
+            opseraMcpContext = `Opsera GitBook Docs MCP (tools/list returned no tools — may be a transient error).`;
         }
     } catch (e) {
+        opseraMcpContext = `Opsera GitBook Docs MCP unreachable: ${e.message}`;
         console.error("Failed to fetch MCP tools list:", e);
     }
     let provider = localStorage.getItem("api_provider") || "gemini";
@@ -1346,46 +1407,35 @@ async function handleCopilotMessage(customText) {
 
     let assistantResponseText = "";
 
-    const chatSystemPrompt = `You are the SuperPlane AI Copilot, a friendly and extremely smart platform assistant pair programming with Rene (Cloudtheboi).
-You have access to the following current state details:
-- Pasted Shell Script Code:
-\`\`\`bash
-${elements.scriptTextarea.value}
-\`\`\`
-- Current Visual Canvas Nodes flowchart: ${JSON.stringify(activeCanvasNodes)}
-- Target Environment Status: 2 Render microservices (web-api, job-runner) and 1 production Postgres database.
-- Opsera DevSecOps MCP Status: ${opseraMcpContext}
+    const chatSystemPrompt = `You are the SuperPlane AI Copilot — a real, live AI assistant (powered by Kimi K2.6 via Fireworks AI) pair programming with Rene.
 
-Your Job:
-Help Rene manage, edit, build, or analyze the SuperPlane canvas and system logs in friendly, supportive vibe-coder terms.
-Capabilities:
-1. If Rene asks you to add nodes, delete nodes, rename nodes, modify node descriptions, or completely rebuild the visual flowchart, you can output a custom canvas structure in your chat response.
-To do this, you MUST append a valid JSON canvas representation wrapped inside a special <canvas_update> tag:
+Current app state:
+- Shell Script in editor: ${elements.scriptTextarea.value ? `\`\`\`bash\n${elements.scriptTextarea.value}\n\`\`\`` : "(none pasted yet)"}
+- Visual Canvas Nodes: ${activeCanvasNodes.length > 0 ? JSON.stringify(activeCanvasNodes) : "(canvas is empty — not yet migrated)"}
+- Target Environment: 2 Render microservices (web-api, job-runner) + 1 production Postgres database
+- Opsera Docs MCP: ${opseraMcpContext}
+
+What you can ACTUALLY do:
+1. CANVAS UPDATES — If Rene asks to add/remove/edit nodes on the visual flowchart canvas, respond with a <canvas_update> JSON block:
 <canvas_update>
 {
-  "canvasTitle": "A sleek visual title",
+  "canvasTitle": "Title here",
   "nodes": [
-    {
-      "id": "node-1",
-      "type": "trigger | sensor | ai-agent | action",
-      "name": "Node Name",
-      "desc": "How this safe node replaces brittle scripts"
-    }
+    { "id": "node-1", "type": "trigger", "name": "Name", "desc": "Description" }
   ]
 }
 </canvas_update>
-Ensure nodes lists contain connected cards. Types must strictly be trigger, sensor, ai-agent, or action.
+Node types must be exactly: trigger, sensor, ai-agent, or action.
 
-2. If Rene asks to run or test any of the Opsera MCP DevSecOps tools (like security scans, compliance audits, or architecture mappings), you can invoke them dynamically. 
-To do this, you MUST append a valid JSON tool call representation wrapped inside a special <opsera_tool_call> tag:
-<opsera_tool_call>
-{
-  "name": "security_vulnerability_scanner | architecture_analyzer | compliance_auditor"
-}
-</opsera_tool_call>
-When you invoke an Opsera tool call, a gorgeous interactive scan result card will be rendered directly in the stream.
+2. OPSERA DOCS LOOKUP — You have live access to the Opsera DevSecOps documentation via the MCP tools: searchDocumentation and getPage. Use these to answer questions about Opsera's actual capabilities, agent setup, OAuth flows, pipeline config etc. Do NOT make up Opsera features — look them up.
 
-Keep natural visible responses extremely concise and friendly.`;
+3. SCRIPT ANALYSIS — Analyze the bash script in the editor and explain what it does, find risks, suggest SuperPlane node replacements.
+
+4. GENERAL HELP — Answer questions about DevOps, the app, deployment, Render, Postgres etc.
+
+IMPORTANT: Be honest. Do NOT claim to run security scans, architecture analysis, or compliance audits on the user's real repo — those are Opsera agent capabilities that require the user to install the Opsera Claude Code plugin and authenticate via OAuth at agent.opsera.ai. You can explain how to do that if asked.
+
+Be concise, direct, and friendly.`;
 
     if (hasActiveKey) {
         // Real-Time LLM Chat routing via secure local backend proxy to bypass CORS
@@ -1411,13 +1461,33 @@ Keep natural visible responses extremely concise and friendly.`;
             if (response.ok) {
                 const resJson = await response.json();
                 assistantResponseText = resJson.text;
+                if (resJson.model) {
+                    writeConsoleLog(`> ✅ [LLM SUCCESS] Response received via ${resJson.model}`, "success-msg");
+                }
             } else {
-                const errJson = await response.json();
-                throw new Error(errJson.error || `HTTP ${response.status}`);
+                let errMsg = `HTTP ${response.status}`;
+                try {
+                    const errJson = await response.json();
+                    errMsg = errJson.error || errMsg;
+                } catch(e) {}
+                throw new Error(errMsg);
             }
         } catch (err) {
-            writeConsoleLog(`> [COPILOT ERROR] Chat API failed: ${err.message}. Routing to local mock parser...`, "error-msg");
-            assistantResponseText = "";
+            const errDisplay = err.message || "Unknown error";
+            writeConsoleLog(`> ❌ [LLM ERROR] ${errDisplay}`, "error-msg");
+            // Show error directly in chat instead of falling back to mock
+            const errorBubble = `<p>⚠️ <strong>LLM Error:</strong> ${escapeHtml(errDisplay)}</p>
+            <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.3rem;">
+            Check your API key and that your Fireworks account has credits. 
+            You can update your key in ⚙️ Settings.
+            </p>`;
+            appendMessage(errorBubble, "assistant");
+            // Remove typing indicator
+            const t1 = document.getElementById("chat-typing-indicator");
+            if (t1) t1.remove();
+            const t2 = document.getElementById("chat-typing-indicator-docked");
+            if (t2) t2.remove();
+            return; // Don't fall through to mock replies
         }
     }
 
@@ -1597,17 +1667,8 @@ I'll automatically parse your message and update the canvas nodes live on your s
         bubbleHtml += toolCallCardHtml;
     }
     
-    const b1 = document.createElement("div");
-    b1.className = "chat-bubble assistant";
-    b1.innerHTML = bubbleHtml;
-    elements.chatMessages.appendChild(b1);
-    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
-
-    const b2 = document.createElement("div");
-    b2.className = "chat-bubble assistant";
-    b2.innerHTML = bubbleHtml;
-    elements.dockedChatMessages.appendChild(b2);
-    elements.dockedChatMessages.scrollTop = elements.dockedChatMessages.scrollHeight;
+    // Render assistant message bubble using the same helper
+    appendMessage(bubbleHtml, "assistant");
 }
 
 // Bind Provider Dropdown Change Event
