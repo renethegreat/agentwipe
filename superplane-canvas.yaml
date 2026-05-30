@@ -1,0 +1,66 @@
+# SuperPlane Visual Platform Engineering Workflow
+# Satisfies Hackathon Track 1: Secure Agent Harness Config
+version: superplane/v1alpha1
+kind: WorkflowCanvas
+metadata:
+  name: self-healing-service-harness
+  annotations:
+    superplane.io/service-harness: "secure"
+    superplane.io/description: "Sandboxed agent execution harness replacing legacy shell code"
+spec:
+  description: "Declarative secure controller replacing brittle bash scripts"
+  nodes:
+    - id: "node-1"
+      name: "Disk Usage Exceeded Alert"
+      category: "trigger"
+      type: "superplane/trigger"
+      harness:
+        sandboxed: true
+        allowWriteAccess: false
+      properties:
+        description: "Listens for automated disk utilization alerts breaching 80% volume capacity."
+    - id: "node-2"
+      name: "Safe Log File Scanner"
+      category: "sensor"
+      type: "superplane/sensor"
+      harness:
+        sandboxed: true
+        allowWriteAccess: false
+      properties:
+        description: "Scans file system storage nodes to identify open handles and lock tables securely."
+    - id: "node-3"
+      name: "Purge Optimizer AI"
+      category: "agent"
+      type: "superplane/ai-agent"
+      harness:
+        sandboxed: true
+        allowWriteAccess: false
+      properties:
+        description: "Instructs AI to evaluate log profiles and safely isolate non-critical archival content."
+    - id: "node-4"
+      name: "Compress & Safe Rotate"
+      category: "executor"
+      type: "superplane/action"
+      harness:
+        sandboxed: true
+        allowWriteAccess: false
+      properties:
+        description: "Performs GZIP compression, safely rotates system descriptors, and rotates logs."
+    - id: "node-5"
+      name: "Ops Email Notification"
+      category: "executor"
+      type: "superplane/action"
+      harness:
+        sandboxed: true
+        allowWriteAccess: false
+      properties:
+        description: "Fires an HTML system summary digest showing deleted volumes andhealthy storage charts."
+  connections:
+    - from: "node-1"
+      to: "node-2"
+    - from: "node-2"
+      to: "node-3"
+    - from: "node-3"
+      to: "node-4"
+    - from: "node-4"
+      to: "node-5"

@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperPlane AI Incident Autopilot & Script Migrator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="vibe-mode-active">
+    <div class="glass-bg"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+    <div class="glow-orb orb-3"></div>
+
+    <div class="app-container">
+        <!-- Top Navigation -->
+        <header class="app-header">
+            <div class="logo-area">
+                <span class="pulse-dot"></span>
+                <h1>SuperPlane <span class="accent-text">Autopilot</span></h1>
+                <span class="badge">Bash Script Funeral Edition</span>
+            </div>
+            <div class="header-actions">
+                <!-- Vibe Switcher Pill -->
+                <div class="vibe-switcher-pill">
+                    <button class="switcher-btn active" id="vibe-mode-btn" title="Simple Vibe Mode">🌸 Vibe Mode</button>
+                    <button class="switcher-btn" id="dev-mode-btn" title="Full Developer Cockpit">🛠️ Cockpit Mode</button>
+                </div>
+                <div class="status-indicator">
+                    <span class="label">System State:</span>
+                    <span class="status-value active" id="system-status">Standby</span>
+                </div>
+                <button class="settings-toggle-btn" id="settings-open-btn" title="API Configuration">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="workspace-grid">
+            
+            <!-- Panel 1: Brittle Legacy Terminal -->
+            <section class="panel terminal-panel" id="panel-legacy">
+                <div class="panel-header">
+                    <div class="panel-title-area">
+                        <svg class="icon text-amber" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m10 18-6-6 6-6M14 6l6 6-6 6"/>
+                        </svg>
+                        <h2>Legacy Bash Script</h2>
+                    </div>
+                    <span class="panel-subtitle">Ingest and sandboxed-migrate legacy shell files</span>
+                </div>
+
+                <!-- Drag and Drop Ingestion Zone -->
+                <div class="upload-dropzone" id="upload-dropzone">
+                    <input type="file" id="file-uploader" accept=".sh,.bash,.txt" style="display: none;">
+                    <svg class="icon-large" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75z"/>
+                    </svg>
+                    <span>Drag & drop script (.sh) or click to browse</span>
+                </div>
+
+                <!-- DevOps Script Locker Title -->
+                <div class="locker-section-title">
+                    <span>DevOps Script Locker</span>
+                    <span class="locker-count" id="locker-count">3 Files</span>
+                </div>
+
+                <!-- Scrollable Script Locker List -->
+                <div class="script-locker-list" id="script-locker-list">
+                    <!-- Standard presets inside locker style -->
+                    <div class="locker-item active" data-key="health" id="locker-health">
+                        <div class="locker-item-meta">
+                            <span class="locker-emoji">🏥</span>
+                            <div class="locker-item-info">
+                                <h4>monitor_service.sh</h4>
+                                <span class="badge badge-severity text-red">⚠️ High Risk</span>
+                            </div>
+                        </div>
+                        <span class="badge badge-status brittle" id="status-health">🔴 Brittle</span>
+                    </div>
+
+                    <div class="locker-item" data-key="cleanup" id="locker-cleanup">
+                        <div class="locker-item-meta">
+                            <span class="locker-emoji">🧹</span>
+                            <div class="locker-item-info">
+                                <h4>log_cleanup.sh</h4>
+                                <span class="badge badge-severity text-amber">⚡ Med Risk</span>
+                            </div>
+                        </div>
+                        <span class="badge badge-status brittle" id="status-cleanup">🔴 Brittle</span>
+                    </div>
+
+                    <div class="locker-item" data-key="restart" id="locker-restart">
+                        <div class="locker-item-meta">
+                            <span class="locker-emoji">🔄</span>
+                            <div class="locker-item-info">
+                                <h4>process_restarter.sh</h4>
+                                <span class="badge badge-severity text-red">⚠️ High Risk</span>
+                            </div>
+                        </div>
+                        <span class="badge badge-status brittle" id="status-restart">🔴 Brittle</span>
+                    </div>
+                </div>
+                <!-- Simple Vibe Summary Card -->
+                <div class="vibe-summary-container" id="vibe-summary-container">
+                    <div class="vibe-summary-card">
+                        <div class="vibe-card-title">
+                            <span class="vibe-avatar" id="vibe-card-avatar">🏥</span>
+                            <div class="vibe-title-meta">
+                                <h3 id="vibe-card-name">Brittle Health Monitor</h3>
+                                <span class="vibe-script-name" id="vibe-card-file">monitor_service.sh</span>
+                            </div>
+                        </div>
+                        <div class="vibe-card-body">
+                            <div class="vibe-metric-row">
+                                <span class="vibe-metric-label">Legacy Pain Point:</span>
+                                <p class="vibe-metric-text" id="vibe-card-pain">Crashes blindly if the server has a temporary latency spike, then runs a full root restart without verifying if the process was already dead.</p>
+                            </div>
+                            <div class="vibe-card-code-wrap">
+                                <span class="vibe-code-label">Brittle Shell Directive:</span>
+                                <code class="vibe-code-snippet" id="vibe-card-code">curl -sf http://localhost || systemctl restart web</code>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="vibe-toggle-code-btn" id="vibe-toggle-code-btn" title="Inspect raw DevOps code">🛠️ Show Full Bash Code</button>
+                </div>
+
+                <div class="editor-container" id="editor-container">
+                    <div class="editor-chrome">
+                        <span class="dot red"></span>
+                        <span class="dot yellow"></span>
+                        <span class="dot green"></span>
+                        <span class="file-name">monitor_service.sh</span>
+                    </div>
+                    <div class="editor-body">
+                        <div class="line-numbers" id="editor-lines"></div>
+                        <textarea class="code-area" id="script-textarea" spellcheck="false" autocomplete="off"></textarea>
+                    </div>
+                </div>
+                <div class="action-footer">
+                    <button class="btn btn-primary" id="migrate-btn">
+                        <svg class="icon spin-on-hover" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                        </svg>
+                        Migrate to SuperPlane Workflow
+                    </button>
+                </div>
+            </section>
+
+            <!-- Panel 2: SuperPlane Visual Canvas -->
+            <section class="panel canvas-panel" id="panel-canvas">
+                <div class="panel-header canvas-header-wrap">
+                    <div class="panel-title-row">
+                        <div class="panel-title-area">
+                            <svg class="icon text-purple" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 17H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-4M12 3v14M12 17a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/>
+                            </svg>
+                            <h2>SuperPlane Canvas</h2>
+                        </div>
+                        <div class="canvas-badges">
+                            <span class="safety-badge secure" id="safety-badge" style="display: none;">🔒 Service Harness Secure</span>
+                            <button class="export-yaml-btn" id="export-yaml-btn" style="display: none;">Export YAML</button>
+                        </div>
+                    </div>
+                    <span class="panel-subtitle" id="canvas-subtitle">Visual workflow generator</span>
+                </div>
+
+                <!-- Simplified Onboarding Guide Bar -->
+                <div class="onboarding-guide-bar" id="onboarding-guide-bar">
+                    <div class="guide-step active" id="step-migrate">
+                        <span class="step-num">1</span>
+                        <span class="step-text">Migrate Script</span>
+                    </div>
+                    <div class="guide-arrow">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                        </svg>
+                    </div>
+                    <div class="guide-step" id="step-incident">
+                        <span class="step-num">2</span>
+                        <span class="step-text">Trigger Incident</span>
+                    </div>
+                    <div class="guide-arrow">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                        </svg>
+                    </div>
+                    <div class="guide-step" id="step-interact">
+                        <span class="step-num">3</span>
+                        <span class="step-text">Get AI Prompts</span>
+                    </div>
+                </div>
+                <div class="canvas-wrapper">
+                    <div class="canvas-grid-bg"></div>
+                    <div class="particles-overlay" id="particles-container"></div>
+                    <svg class="connections-svg" id="canvas-connections"></svg>
+                    <div class="canvas-nodes" id="canvas-nodes-container">
+                        <div class="empty-state" id="canvas-empty">
+                            <div class="empty-icon-glow">
+                                <svg class="icon-large" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M19.5 13.5 12 21M12 21l-7.5-7.5M12 21V3"/>
+                                </svg>
+                            </div>
+                            <h3>Awaiting Migration</h3>
+                            <p>Select a legacy Bash script and click "Migrate" to watch AI build a modern visual platform engineering workflow here.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Panel 3: Render Autopilot Cockpit -->
+            <section class="panel cockpit-panel" id="panel-cockpit">
+                <div class="panel-tabs-header">
+                    <button class="panel-tab-btn active" id="tab-monitor-btn">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect width="18" height="18" x="3" y="3" rx="2"/>
+                            <path d="M9 17V7M15 17V7"/>
+                        </svg>
+                        <span>System Monitor</span>
+                    </button>
+                    <button class="panel-tab-btn" id="tab-chat-btn">
+                        <svg class="icon animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        <span>AI Copilot Chat</span>
+                        <span class="pulse-dot-small animate-ping"></span>
+                    </button>
+                </div>
+
+                <div id="monitor-content-area" class="monitor-content-area">
+                    <!-- Environment Overview -->
+                    <div class="env-row">
+                        <div class="service-card" id="srv-web">
+                            <div class="service-meta">
+                                <span class="service-type">WEB SERVICE</span>
+                                <span class="service-pulse status-healthy"></span>
+                            </div>
+                            <h3>web-api</h3>
+                            <div class="metric-row">
+                                <span class="metric-label">Status</span>
+                                <span class="metric-value text-green" id="srv-web-status">Live</span>
+                            </div>
+                            <div class="service-telemetry">
+                                <div class="telemetry-bar-row">
+                                    <div class="bar-label">
+                                        <span>CPU</span>
+                                        <span id="srv-web-cpu-val">18%</span>
+                                    </div>
+                                    <div class="telemetry-track">
+                                        <div class="telemetry-fill telemetry-fill-cpu" id="srv-web-cpu-bar" style="width: 18%"></div>
+                                    </div>
+                                </div>
+                                <div class="telemetry-bar-row">
+                                    <div class="bar-label">
+                                        <span>RAM</span>
+                                        <span id="srv-web-ram-val">42%</span>
+                                    </div>
+                                    <div class="telemetry-track">
+                                        <div class="telemetry-fill telemetry-fill-ram" id="srv-web-ram-bar" style="width: 42%"></div>
+                                    </div>
+                                </div>
+                                <div class="telemetry-bar-row">
+                                    <div class="bar-label">
+                                        <span>Disk</span>
+                                        <span id="srv-web-disk-val">22%</span>
+                                    </div>
+                                    <div class="telemetry-track">
+                                        <div class="telemetry-fill telemetry-fill-disk" id="srv-web-disk-bar" style="width: 22%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="service-card" id="srv-worker">
+                            <div class="service-meta">
+                                <span class="service-type">WORKER</span>
+                                <span class="service-pulse status-healthy"></span>
+                            </div>
+                            <h3>job-runner</h3>
+                            <div class="metric-row">
+                                <span class="metric-label">Status</span>
+                                <span class="metric-value text-green" id="srv-worker-status">Live</span>
+                            </div>
+                            <div class="service-telemetry">
+                                <div class="telemetry-bar-row">
+                                    <div class="bar-label">
+                                        <span>CPU</span>
+                                        <span id="srv-worker-cpu-val">12%</span>
+                                    </div>
+                                    <div class="telemetry-track">
+                                        <div class="telemetry-fill telemetry-fill-cpu" id="srv-worker-cpu-bar" style="width: 12%"></div>
+                                    </div>
+                                </div>
+                                <div class="telemetry-bar-row">
+                                    <div class="bar-label">
+                                        <span>RAM</span>
+                                        <span id="srv-worker-ram-val">30%</span>
+                                    </div>
+                                    <div class="telemetry-track">
+                                        <div class="telemetry-fill telemetry-fill-ram" id="srv-worker-ram-bar" style="width: 30%"></div>
+                                    </div>
+                                </div>
+                                <div class="telemetry-bar-row">
+                                    <div class="bar-label">
+                                        <span>Disk</span>
+                                        <span id="srv-worker-disk-val">15%</span>
+                                    </div>
+                                    <div class="telemetry-track">
+                                        <div class="telemetry-fill telemetry-fill-disk" id="srv-worker-disk-bar" style="width: 15%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="service-card" id="srv-db">
+                            <div class="service-meta">
+                                <span class="service-type">POSTGRES</span>
+                                <span class="service-pulse status-healthy"></span>
+                            </div>
+                            <h3>production-db</h3>
+                            <div class="metric-row">
+                                <span class="metric-label">Status</span>
+                                <span class="metric-value text-green" id="srv-db-status">Available</span>
+                            </div>
+                            <div class="service-telemetry">
+                                <div class="telemetry-bar-row">
+                                    <div class="bar-label">
+                                        <span>CPU</span>
+                                        <span id="srv-db-cpu-val">8%</span>
+                                    </div>
+                                    <div class="telemetry-track">
+                                        <div class="telemetry-fill telemetry-fill-cpu" id="srv-db-cpu-bar" style="width: 8%"></div>
+                                    </div>
+                                </div>
+                                <div class="telemetry-bar-row">
+                                    <div class="bar-label">
+                                        <span>RAM</span>
+                                        <span id="srv-db-ram-val">55%</span>
+                                    </div>
+                                    <div class="telemetry-track">
+                                        <div class="telemetry-fill telemetry-fill-ram" id="srv-db-ram-bar" style="width: 55%"></div>
+                                    </div>
+                                </div>
+                                <div class="telemetry-bar-row">
+                                    <div class="bar-label">
+                                        <span>Disk</span>
+                                        <span id="srv-db-disk-val">38%</span>
+                                    </div>
+                                    <div class="telemetry-track">
+                                        <div class="telemetry-fill telemetry-fill-disk" id="srv-db-disk-bar" style="width: 38%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Telemetry Stats Ledger -->
+                    <div class="telemetry-ledger-panel">
+                        <div class="ledger-stats">
+                            <div class="stat-box">
+                                <span class="stat-num" id="stat-webhooks">0</span>
+                                <span class="stat-label">Webhooks Ingested</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-num" id="stat-remediations">0</span>
+                                <span class="stat-label">Remediations Run</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-num font-mono" id="stat-latency">--</span>
+                                <span class="stat-label">Harness Latency</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Simulation Trigger -->
+                    <div class="simulation-trigger-area">
+                        <button class="btn btn-secondary btn-danger-hover" id="trigger-incident-btn" disabled>
+                            <svg class="icon animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                                <line x1="12" x2="12" y1="9" y2="13"/>
+                                <line x1="12" x2="12" y1="17" y2="17.01"/>
+                            </svg>
+                            Trigger Environment Incident
+                        </button>
+                    </div>
+
+                    <!-- Live Stream Console & Execution Log -->
+                    <div class="console-container">
+                        <div class="console-header">
+                            <span>Autopilot Live Action Log</span>
+                            <span class="live-tag">LIVE STREAM</span>
+                        </div>
+                        <div class="console-body" id="console-stream">
+                            <div class="console-line system-msg">> Autopilot standby. Awaiting SuperPlane workflow migration...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="chat-content-area" class="chat-content-area" style="display: none;">
+                    <div class="docked-chat-messages" id="docked-chat-messages">
+                        <div class="chat-bubble assistant">
+                            <p>Hey Rene! I'm your SuperPlane AI Copilot. I can parse custom shell scripts, modify the active canvas flowcharts, write developer prompts, or explain system logs. What can I build for you today?</p>
+                        </div>
+                    </div>
+                    <div class="docked-chat-chips">
+                        <button class="chat-chip" data-prompt="Add a Discord alert node at the end">📢 Add Discord Alert</button>
+                        <button class="chat-chip" data-prompt="Change the second sensor node to Datadog">📊 Use Datadog Sensor</button>
+                        <button class="chat-chip" data-prompt="Explain the OOM crash logs">🔍 Explain Crash Logs</button>
+                    </div>
+                    <div class="docked-chat-input-area">
+                        <input type="text" id="docked-chat-input" placeholder="Type a request (e.g. 'Add a Discord alert')..." autocomplete="off">
+                        <button class="chat-send-btn" id="docked-chat-send-btn">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="22" y1="2" x2="11" y2="13"/>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Settings Drawer Overlay -->
+    <div class="modal-overlay" id="settings-overlay">
+        <div class="settings-drawer">
+            <div class="drawer-header">
+                <h3>API Configuration</h3>
+                <button class="close-btn" id="settings-close-btn">&times;</button>
+            </div>
+            <div class="drawer-body">
+                <p class="drawer-note">To unlock live AI script parsing, choose a provider and save your API key. Stored securely in your browser's local memory.</p>
+                <div class="form-group">
+                    <label for="api-provider">API Provider</label>
+                    <select id="api-provider" class="form-select">
+                        <option value="gemini">Google Gemini</option>
+                        <option value="fireworks">Fireworks AI</option>
+                    </select>
+                </div>
+                <div class="form-group" id="gemini-key-group">
+                    <label for="gemini-key">Gemini API Key</label>
+                    <input type="password" id="gemini-key" placeholder="AIzaSy..." autocomplete="off">
+                    <span class="input-hint">Get a free key from <a href="https://aistudio.google.com/" target="_blank">Google AI Studio</a>.</span>
+                </div>
+                <div class="form-group" id="fireworks-key-group" style="display: none;">
+                    <label for="fireworks-key">Fireworks API Key</label>
+                    <input type="password" id="fireworks-key" placeholder="fw_..." autocomplete="off">
+                    <span class="input-hint">Enter your key from <a href="https://fireworks.ai/" target="_blank">Fireworks AI Console</a>.</span>
+                </div>
+                <button class="btn btn-primary" id="settings-save-btn">Save Configurations</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Node Prompt Helper Modal -->
+    <div class="modal-overlay" id="prompt-overlay">
+        <div class="modal-window">
+            <div class="modal-header">
+                <div class="modal-title-wrap">
+                    <span class="modal-tag" id="prompt-modal-tag">TRIGGER</span>
+                    <h3 id="prompt-modal-title">Cron Schedule Trigger</h3>
+                </div>
+                <button class="close-btn" id="prompt-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-description" id="prompt-modal-desc">This visual node replaces brittle crontab triggers. Click below to copy a pre-engineered prompt to feed into Claude or Cursor to implement it.</p>
+                
+                <!-- Modal Tabs -->
+                <div class="modal-tabs">
+                    <button class="modal-tab-btn active" id="modal-tab-prompt-btn">📋 Claude / Cursor Prompt</button>
+                    <button class="modal-tab-btn" id="modal-tab-code-btn">💻 Production Node.js Code</button>
+                </div>
+
+                <div class="prompt-box-wrapper" id="modal-prompt-wrapper">
+                    <div class="prompt-box-header">
+                        <span>Cursor / Claude Dev Prompt</span>
+                        <button class="copy-prompt-btn" id="copy-prompt-btn">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                            </svg>
+                            Copy Prompt
+                        </button>
+                    </div>
+                    <textarea class="prompt-textarea" id="prompt-textarea" readonly></textarea>
+                </div>
+
+                <div class="prompt-box-wrapper" id="modal-code-wrapper" style="display: none;">
+                    <div class="prompt-box-header">
+                        <span>harness_node_implementation.js</span>
+                        <button class="copy-prompt-btn" id="copy-code-btn">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                            </svg>
+                            Copy JS Code
+                        </button>
+                    </div>
+                    <textarea class="prompt-textarea code-syntax-hl" id="code-textarea" readonly></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- YAML Export Modal -->
+    <div class="modal-overlay" id="yaml-overlay">
+        <div class="modal-window">
+            <div class="modal-header">
+                <div class="modal-title-wrap">
+                    <span class="modal-tag">YAML</span>
+                    <h3>SuperPlane Canvas Export</h3>
+                </div>
+                <button class="close-btn" id="yaml-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-description">This is the official declarative SuperPlane YAML configuration representing your secure Service Harness. Check this into your GitHub repository to satisfy Track 1.</p>
+                <div class="prompt-box-wrapper">
+                    <div class="prompt-box-header">
+                        <span>superplane-canvas.yaml</span>
+                        <button class="copy-prompt-btn" id="copy-yaml-btn">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                            </svg>
+                            Copy YAML
+                        </button>
+                    </div>
+                    <textarea class="prompt-textarea" id="yaml-textarea" readonly></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating AI Copilot Chat Toggle Button -->
+    <button class="copilot-toggle-btn" id="copilot-toggle-btn" title="Open AI Copilot Chat">
+        <svg class="icon animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span>AI Copilot</span>
+    </button>
+
+    <!-- Floating AI Copilot Chat Window -->
+    <div class="copilot-chat-window" id="copilot-chat-window">
+        <div class="chat-header">
+            <div class="chat-title-area">
+                <span class="pulse-dot"></span>
+                <h4>SuperPlane Copilot</h4>
+                <span class="model-badge" id="chat-model-badge">AI STANDBY</span>
+            </div>
+            <button class="chat-close-btn" id="chat-close-btn">&times;</button>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            <div class="chat-bubble assistant">
+                <p>Hey Rene! I'm your SuperPlane AI Copilot. I can parse custom shell scripts, modify the active canvas flowcharts, write developer prompts, or explain system logs. What can I build for you today?</p>
+            </div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Type a request (e.g. 'Add a Discord alert')..." autocomplete="off">
+            <button class="chat-send-btn" id="chat-send-btn">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"/>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Script Import -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>
