@@ -1783,6 +1783,7 @@ body {
 
 /* AI Copilot Floating Toggle Button */
 .copilot-toggle-btn {
+    display: none !important;
     position: fixed;
     bottom: 20px;
     right: 20px;
@@ -1796,7 +1797,6 @@ body {
     font-size: 0.8rem;
     letter-spacing: 0.02em;
     box-shadow: 0 4px 20px rgba(168, 85, 247, 0.4);
-    display: flex;
     align-items: center;
     gap: 0.5rem;
     cursor: pointer;
@@ -1812,6 +1812,7 @@ body {
 
 /* AI Copilot Chat Window (Floating Glassmorphic Modal) */
 .copilot-chat-window {
+    display: none !important;
     position: fixed;
     bottom: 80px;
     right: 20px;

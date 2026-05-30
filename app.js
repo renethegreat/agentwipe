@@ -1370,49 +1370,33 @@ When you invoke an Opsera tool call, a gorgeous interactive scan result card wil
 Keep natural visible responses extremely concise and friendly.`;
 
     if (hasActiveKey) {
-        // Real-Time LLM Chat routing
+        // Real-Time LLM Chat routing via secure local backend proxy to bypass CORS
         try {
-            if (provider === "gemini") {
-                const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`;
-                const response = await fetch(apiEndpoint, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: chatSystemPrompt + "\n\nUser request: " + text }] }]
-                    })
-                });
+            const activeKey = provider === "gemini" ? geminiKey : fireworksKey;
+            const chatEndpoint = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" 
+                ? "http://localhost:3000/api/chat" 
+                : "/api/chat";
+                
+            writeConsoleLog(`> 🔮 Piping prompt to secure server proxy at ${chatEndpoint}...`, "info-msg");
+            
+            const response = await fetch(chatEndpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    provider: provider,
+                    apiKey: activeKey,
+                    systemPrompt: chatSystemPrompt,
+                    userPrompt: text
+                })
+            });
 
-                if (response.ok) {
-                    const resJson = await response.json();
-                    assistantResponseText = resJson.candidates[0].content.parts[0].text;
-                } else {
-                    throw new Error(`Gemini status ${response.status}`);
-                }
+            if (response.ok) {
+                const resJson = await response.json();
+                assistantResponseText = resJson.text;
             } else {
-                const apiEndpoint = `https://api.fireworks.ai/inference/v1/chat/completions`;
-                const response = await fetch(apiEndpoint, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${fireworksKey}`
-                    },
-                    body: JSON.stringify({
-                        model: "accounts/fireworks/models/llama-v3p1-70b-instruct",
-                        messages: [
-                            { role: "system", content: chatSystemPrompt },
-                            { role: "user", content: text }
-                        ]
-                    })
-                });
-
-                if (response.ok) {
-                    const resJson = await response.json();
-                    assistantResponseText = resJson.choices[0].message.content;
-                } else {
-                    throw new Error(`Fireworks Llama status ${response.status}`);
-                }
+                const errJson = await response.json();
+                throw new Error(errJson.error || `HTTP ${response.status}`);
             }
-
         } catch (err) {
             writeConsoleLog(`> [COPILOT ERROR] Chat API failed: ${err.message}. Routing to local mock parser...`, "error-msg");
             assistantResponseText = "";

@@ -76,6 +76,71 @@ app.get('/health', (req, res) => {
     res.status(200).json({ status: "healthy", service: "superplane-secure-harness-orchestrator" });
 });
 
+// Local proxy router for secure LLM chat execution, bypassing browser CORS restrictions
+app.post('/api/chat', async (req, res) => {
+    const { provider, apiKey, systemPrompt, userPrompt } = req.body;
+
+    if (!apiKey || apiKey.trim() === "") {
+        return res.status(400).json({ error: "Missing API key" });
+    }
+
+    try {
+        if (provider === "gemini") {
+            const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            const response = await fetch(apiEndpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: systemPrompt + "\n\nUser request: " + userPrompt }] }]
+                })
+            });
+
+            if (response.ok) {
+                const resJson = await response.json();
+                if (resJson.candidates && resJson.candidates[0] && resJson.candidates[0].content && resJson.candidates[0].content.parts[0]) {
+                    const text = resJson.candidates[0].content.parts[0].text;
+                    return res.json({ text });
+                }
+                throw new Error("Invalid response format from Gemini");
+            } else {
+                const errText = await response.text();
+                return res.status(response.status).json({ error: `Gemini Error: ${errText}` });
+            }
+        } else {
+            const apiEndpoint = `https://api.fireworks.ai/inference/v1/chat/completions`;
+            const response = await fetch(apiEndpoint, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: "accounts/fireworks/models/llama-v3p1-70b-instruct",
+                    messages: [
+                        { role: "system", content: systemPrompt },
+                        { role: "user", content: userPrompt }
+                    ]
+                })
+            });
+
+            if (response.ok) {
+                const resJson = await response.json();
+                if (resJson.choices && resJson.choices[0] && resJson.choices[0].message) {
+                    const text = resJson.choices[0].message.content;
+                    return res.json({ text });
+                }
+                throw new Error("Invalid response format from Fireworks");
+            } else {
+                const errText = await response.text();
+                return res.status(response.status).json({ error: `Fireworks Llama Error: ${errText}` });
+            }
+        }
+    } catch (err) {
+        console.error("[PROXY CHAT ERROR]", err);
+        return res.status(500).json({ error: err.message });
+    }
+});
+
 // Help usage guidelines
 app.get('/', (req, res) => {
     res.send(`
